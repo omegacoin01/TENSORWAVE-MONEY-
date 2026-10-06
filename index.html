@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>T-WAVE COIN</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--grad:linear-gradient(160deg,#04162a 0%,#06395a 48%,#075b46 100%);--bg:#04162a;--panel:#0a2a44;--raise:#0f3a5c;--line:#1b4a6b;--text:#e8f6ff;--muted:#8fb3c9;
+ --gold:#22d3ee;--up:#0ecb81;--down:#f6465d}
+body{min-height:100vh;background:var(--grad) fixed;color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+ line-height:1.45;font-variant-numeric:tabular-nums;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+button,input{font:inherit}button{cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.btn{width:100%;min-height:48px;border-radius:10px;border:1px solid var(--line);background:var(--raise);color:var(--text);font-weight:600}
+.btn.primary{background:var(--gold);border-color:var(--gold);color:#031018}
+.btn.ghost{background:transparent}.btn:active{transform:scale(.98)}
+.field{margin-bottom:14px}.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+.field input,.amount{width:100%;height:48px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);padding:0 14px}
+.amount{margin-bottom:10px}
+.logo{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;
+ background:var(--gold);color:#031018;font-weight:800;font-size:19px}
+.up{color:var(--up)}.down{color:var(--down)}.muted{color:var(--muted)}
+
+/* login */
+#loginPage{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.loginBox{width:100%;max-width:400px}
+.loginBox .logo{width:64px;height:64px;font-size:36px;display:flex;margin:0 auto 14px}
+.loginTitle{text-align:center;font-size:26px;font-weight:700}
+.loginSub{text-align:center;color:var(--muted);margin:4px 0 24px;font-size:14px}
+.terms{display:flex;gap:9px;font-size:13px;color:var(--muted);margin:6px 0 18px}.terms input{margin-top:3px}
+#loginStatus{text-align:center;min-height:20px;margin-top:12px;font-size:13px;color:var(--down)}
+
+/* home */
+#homePage{display:none;max-width:520px;margin:0 auto;padding:0 14px 30px}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 0}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px}
+.chip{font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:5px 11px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+.label{font-size:12px;color:var(--muted);margin-bottom:4px}
+.pair{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;color:var(--muted);margin-bottom:6px}
+.pair .logo{width:22px;height:22px;font-size:13px}
+#heroPrice{white-space:nowrap;font-size:clamp(24px,8vw,34px);font-weight:700;letter-spacing:-.5px;line-height:1.2}
+.eq{font-size:.45em;font-weight:600;color:var(--muted);letter-spacing:0;margin-right:.35em}
+.heroRow{display:flex;gap:10px;align-items:baseline;margin-top:4px;font-size:14px}
+#chartArea{margin:12px -16px 0;min-height:290px;touch-action:pan-y;user-select:none}
+#chartArea svg{display:block;width:100%;height:290px}
+.empty{color:var(--muted);font-size:13px;padding:70px 14px;text-align:center}
+  .tabs{display:flex;gap:4px;margin-top:6px;background:var(--bg);border-radius:10px;padding:3px}
+.tab{flex:1;height:34px;border-radius:8px;border:0;background:transparent;color:var(--muted);font-weight:600;font-size:13px}
+.tab.on{background:var(--raise);color:var(--text)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.stats b{display:block;font-size:14px;font-weight:600}
+.balance{font-size:34px;font-weight:700;line-height:1.1;letter-spacing:-.5px}
+.balance small{font-size:14px;color:var(--gold);margin-left:6px;font-weight:600;letter-spacing:0}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.steps{list-style:none;counter-reset:s;margin-top:6px}
+.steps li{counter-increment:s;display:flex;gap:12px;padding:9px 0;font-size:14px;color:#c3dbe8}
+.steps li:before{content:counter(s);flex:none;width:24px;height:24px;border-radius:50%;background:var(--raise);
+ color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.note{color:var(--muted);font-size:12px;margin-top:8px}
+.row{padding:10px 0;border-bottom:1px solid var(--line)}.row:last-of-type{border-bottom:0}
+.row div:last-child{word-break:break-all;font-size:14px}
+.bar{height:6px;background:var(--raise);border-radius:4px;overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;background:var(--gold)}
+.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1.3s ease-out forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.pulse{transform-box:fill-box;transform-origin:center;animation:pulse 2s ease-out infinite}
+@keyframes pulse{from{opacity:.7;transform:scale(1)}to{opacity:0;transform:scale(3.2)}}
+@media(prefers-reduced-motion:reduce){.pulse{display:none}.draw{animation:none;stroke-dashoffset:0}}
+.prices{border:1px solid var(--line);border-radius:12px;margin-bottom:12px;max-height:228px;overflow:auto}
+.pr{display:flex;justify-content:space-between;width:100%;padding:11px 14px;background:transparent;border:0;border-bottom:1px solid var(--line);color:var(--text);font-size:14px}
+.pr:last-child{border-bottom:0}.pr b{color:var(--gold)}
+.msg{white-space:pre-line;max-width:82%;padding:9px 12px;border-radius:14px;margin-bottom:8px;font-size:14px;word-break:break-word}
+.msg.me{margin-left:auto;background:#2f6bff;color:#fff;border-radius:14px 14px 4px 14px}
+.msg.mgr,.msg.sys{background:var(--gold);color:#031018;max-width:84%;border-radius:14px 14px 14px 4px}
+.modal.chat{background:var(--grad)}
+.msg small{display:block;font-size:10px;opacity:.65;margin-top:3px}
+.cam{width:46px;height:46px;flex:none;border-radius:50%;border:0;background:var(--gold);color:#031018;display:flex;align-items:center;justify-content:center;position:relative}
+.cam:before{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--gold);animation:beam 1.4s ease-out infinite}
+@keyframes beam{from{transform:scale(1);opacity:.9}to{transform:scale(1.9);opacity:0}}
+@media(prefers-reduced-motion:reduce){.cam:before{animation:none;opacity:.5;transform:scale(1.25)}}
+.timer{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--muted)}
+.timer b{font-size:20px;color:var(--gold)}
+.warn{display:none;background:rgba(34,211,238,.1);border:1px solid var(--gold);color:var(--gold);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:10px}
+.msg.sys{background:var(--gold);color:#031018;max-width:84%;border-radius:14px 14px 14px 4px}
+.msg img{display:block;max-width:100%;border-radius:10px;margin-bottom:4px;cursor:pointer}
+.chat{padding:0;overflow:hidden;background:var(--bg)}
+.chatFull{display:flex;flex-direction:column;height:100%;max-width:560px;margin:0 auto}
+.chatTop{display:flex;align-items:center;gap:12px;padding:calc(12px + env(safe-area-inset-top,0px)) 14px 12px;border-bottom:1px solid var(--line);background:var(--panel)}
+.back{flex:none;width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--raise);color:var(--text);font-size:18px}
+#chatList{flex:1;overflow:auto;padding:14px}
+.chatBar{padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--panel)}
+.chatBar .r{display:flex;gap:8px;align-items:center}
+.rb{display:none;border-radius:10px;padding:9px 12px;font-size:13px;font-weight:600;margin-top:10px}
+.rb.up{background:rgba(14,203,129,.12);border:1px solid var(--up);color:var(--up)}
+.rb.down{background:rgba(246,70,93,.12);border:1px solid var(--down);color:var(--down)}
+.ev{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;font-weight:600}
+.ev:last-child{border-bottom:0}
+.logo{background:none!important;overflow:hidden}.logo svg{width:100%;height:100%}
+.ev span:last-child{display:flex;align-items:center}
+.arr{display:inline-block;font-style:normal;margin-right:7px;animation:beamu 2.4s ease-in-out infinite}
+.arr.dn{animation-name:beamd}
+@keyframes beamu{0%,100%{color:#0ecb81;text-shadow:0 0 10px #0ecb81}33%{color:#fff;text-shadow:0 0 12px #fff}66%{color:#38bdf8;text-shadow:0 0 12px #38bdf8}}
+@keyframes beamd{0%,100%{color:#f6465d;text-shadow:0 0 10px #f6465d}33%{color:#fff;text-shadow:0 0 12px #fff}66%{color:#38bdf8;text-shadow:0 0 12px #38bdf8}}
+.gold{margin-left:7px;flex:none;animation:goldbeam 1.6s ease-in-out infinite;filter:drop-shadow(0 0 4px #ffc933)}
+@keyframes goldbeam{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.2)}}
+@media(prefers-reduced-motion:reduce){.arr,.gold{animation:none}}
+.footer{text-align:center;color:var(--muted);font-size:11px;padding-top:8px}
+
+/* modals */
+.modal{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.8);padding:18px;overflow:auto}
+.modalBox{max-width:440px;margin:40px auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px}
+.modalTitle{font-size:20px;font-weight:700}.modalSub{color:var(--muted);font-size:13px;margin:4px 0 16px}
+.pay{border:1px solid var(--line);border-radius:12px;padding:4px 14px;margin-bottom:14px;background:var(--bg)}
+.hist{padding:12px 0;border-bottom:1px solid var(--line)}.hist:last-child{border-bottom:0}
+.histTop{display:flex;justify-content:space-between;font-weight:600;font-size:14px}
+.histMeta{color:var(--muted);font-size:11px;margin-top:3px}
+#loading{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:var(--bg);color:var(--muted)}
+.spinner{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin-right:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.spinner{animation:none}}
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div><span id="loadingText">Loading...</span></div>
+
+<div id="loginPage">
+  <div class="loginBox">
+    <div class="logo"><svg width="64" height="64" viewBox="0 0 48 48" aria-label="T-WAVE" style="display:block"><circle cx="24" cy="24" r="24" fill="#0b6bcb"/><path d="M13 12h22v5h-8v13h-6V17h-8z" fill="#fff"/><path d="M8 37q4-6 8 0t8 0 8 0 8 0" fill="none" stroke="#2ee6a6" stroke-width="3.2" stroke-linecap="round"/></svg></div>
+    <div style="text-align:center;color:var(--muted);font-size:14px">TensorWave</div><h1 class="loginTitle">T-WAVE COIN</h1>
+    <p class="loginSub">Log in or create an account with your phone number.</p>
+    <div class="field"><label for="phone">Phone number</label>
+      <input id="phone" type="tel" placeholder="+2348012345678" autocomplete="tel"></div>
+    <div class="field"><label for="password">Password</label>
+      <input id="password" type="password" placeholder="At least 6 characters" autocomplete="current-password"></div>
+    <label class="terms"><input id="terms" type="checkbox">
+      <span>I agree to the TensorWave Coin terms and understand my account activity is recorded.</span></label>
+    <button class="btn primary" onclick="signIn()">Log in</button>
+    <button class="btn ghost" style="margin-top:10px" onclick="signUp()">Create account</button>
+    <div id="loginStatus" role="status"></div>
+  </div>
+</div>
+
+<div id="homePage">
+  <header class="topbar">
+    <div class="brand"><span class="logo"><svg width="34" height="34" viewBox="0 0 48 48" aria-label="T-WAVE" style="display:block"><circle cx="24" cy="24" r="24" fill="#0b6bcb"/><path d="M13 12h22v5h-8v13h-6V17h-8z" fill="#fff"/><path d="M8 37q4-6 8 0t8 0 8 0 8 0" fill="none" stroke="#2ee6a6" stroke-width="3.2" stroke-linecap="round"/></svg></span>T-WAVE COIN</div>
+    <div class="chip" id="topUser">Account</div>
+  </header>
+
+  <section class="card">
+    <div id="heroPrice"><span class="eq">1 T-WAVE COIN =</span> ₦100</div>
+    <div class="heroRow"><span id="heroChange" class="muted">--</span><span id="heroDate" class="muted"></span></div>
+    <div class="rb" id="riseBanner" role="status"></div>
+    <div class="tabs" id="modes" style="margin:12px 0 0"><button class="tab on" data-m="rate">Line</button><button class="tab" data-m="candle">Candles</button><button class="tab" data-m="coins">Coins</button></div>
+    <div id="chartArea" style="margin-top:6px"></div>
+    <div class="note" id="cap" style="margin:4px 0 0;min-height:16px"></div>
+    <div id="events"></div>
+    <div class="tabs" id="tabs">
+      <button class="tab" data-r="0.0416667">1H</button><button class="tab" data-r="1">1D</button><button class="tab" data-r="7">7D</button>
+      <button class="tab" data-r="30">30D</button><button class="tab on" data-r="0">All</button>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div id="supply"></div>
+  </section>
+
+  <section class="card">
+    <div class="label">Your balance</div>
+    <div class="balance"><span id="balanceDisplay">0</span><small>T-WAVE</small></div>
+    <div class="muted" id="worthDisplay" style="font-size:14px;margin-top:2px"></div>
+    <div class="actions">
+      <button class="btn primary" onclick="buyCoin()">Buy coin</button>
+      <button class="btn" onclick="withdrawCoin()">Withdraw</button>
+      <button class="btn" onclick="showHistory()">History</button>
+      <button class="btn" onclick="openGuide()">Support</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="label">How TensorWave Coin works</div>
+    <ol class="steps">
+      <li>Tap Buy coin and pay into the account shown.</li>
+      <li>Tap I have paid, then send your receipt photo to the Account Manager in the chat.</li>
+      <li>The Account Manager confirms and credits your balance.</li>
+      <li>To withdraw, tap Withdraw and message the Account Manager in the app.</li>
+    </ol>
+    <p class="note">Rate rule: the rate moves ₦100 for every 100 coins in circulation. It rises when coins are added and falls when coins are removed. It is set by this rule, not by an open market, and does not guarantee future value.</p>
+  </section>
+
+  <section class="card">
+    <div class="label">Account</div>
+    <div class="row"><div class="label">Phone number</div><div id="accountPhone">---</div></div>
+    <div class="row"><div class="label">User ID</div><div id="accountUserId">---</div></div>
+    <button class="btn ghost" style="margin-top:12px;color:var(--down)" onclick="logout()">Log out</button>
+  </section>
+  <div class="footer">© 2026 TensorWave Coin</div>
+</div>
+
+<div id="buyModal" class="modal"><div class="modalBox">
+  <div class="modalTitle">Buy T-WAVE</div>
+  <div class="modalSub" id="buyRate"></div>
+  <div class="timer"><span>Pay within</span><b id="cd">10:00</b></div>
+  <div class="prices" id="priceList"></div>
+  <input id="buyAmount" class="amount" type="number" min="1" step="1" placeholder="Or type how many T-WAVE" oninput="updateBuyTotal()">
+  <div id="buyTotal" style="margin-bottom:14px;font-weight:600;color:var(--gold)"></div>
+  <div class="label">Pay into this account</div>
+  <div class="pay">
+    <div class="row"><div class="label">Account name</div><div id="payName">Loading...</div></div>
+    <div class="row"><div class="label">Bank</div><div id="payBank">Loading...</div></div>
+    <div class="row"><div class="label">Account number</div><div id="payNumber">Loading...</div></div>
+  </div>
+  <div class="warn" id="paidWarn">Make your payment first. Only tap the button again after you have sent the money.</div>
+  <button class="btn primary" id="paidBtn" onclick="paidClick()">I have paid</button>
+  <button class="btn ghost" style="margin-top:9px" onclick="closeModal('buyModal')">Close</button>
+</div></div>
+
+<div id="chatModal" class="modal chat"><div class="chatFull">
+  <div class="chatTop"><button class="back" onclick="closeChat()" aria-label="Back">←</button>
+    <div><b>Account Manager</b><div class="note" style="margin:0">Replies appear here</div></div></div>
+  <div id="chatList"></div>
+  <div class="chatBar">
+    <div class="note" id="chatHint" style="margin:0 0 8px">Tap the glowing camera to send your payment receipt.</div>
+    <div class="r">
+      <button class="cam" onclick="document.getElementById('rcpt').click()" aria-label="Send receipt photo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+      <input id="chatInput" class="amount" style="margin:0;flex:1;min-width:0" maxlength="500" placeholder="Type a message">
+      <button class="btn primary" style="width:76px" onclick="sendChat()">Send</button>
+    </div>
+    <input id="rcpt" type="file" accept="image/*" hidden onchange="sendImage(this)">
+  </div>
+</div></div>
+
+<div id="guideModal" class="modal"><div class="modalBox">
+  <div class="modalTitle">How TensorWave Coin works</div>
+  <div class="modalSub">Buying and withdrawing, step by step.</div>
+  <ol class="steps">
+    <li>Tap Buy coin and choose how many T-WAVE you want. The price follows the current rate.</li>
+    <li>Pay that amount into the bank account shown.</li>
+    <li>Tap I have paid, then send a photo of your receipt with the camera button in the chat.</li>
+    <li>The Account Manager confirms your payment and adds the coins to your balance.</li>
+    <li>To withdraw, tap Withdraw and message the Account Manager.</li>
+  </ol>
+  <p class="note">The rate moves ₦100 for every 100 coins in circulation: up when coins are added, down when coins are removed. It is set by this rule, not by an open market.</p>
+  <button class="btn primary" style="margin-top:14px" onclick="closeModal('guideModal');buyCoin()">Buy coin</button>
+  <button class="btn" style="margin-top:9px" onclick="openChat()">Message Account Manager</button>
+  <button class="btn ghost" style="margin-top:9px" onclick="closeModal('guideModal')">Close</button>
+</div></div>
+
+<div id="emptyModal" class="modal"><div class="modalBox">
+  <div class="modalTitle">Your account is empty</div>
+  <div class="modalSub">Go and buy coin first. You can withdraw once you have a balance.</div>
+  <button class="btn primary" onclick="closeModal('emptyModal');buyCoin()">Buy coin</button>
+  <button class="btn ghost" style="margin-top:9px" onclick="closeModal('emptyModal')">Close</button>
+</div></div>
+
+<div id="historyModal" class="modal"><div class="modalBox">
+  <div class="modalTitle">Transaction history</div>
+  <div class="modalSub">Your recent T-WAVE transactions.</div>
+  <div id="historyList">Loading...</div>
+  <button class="btn ghost" style="margin-top:12px" onclick="closeModal('historyModal')">Close</button>
+</div></div>
+
+<script>
+/* ===== FIREBASE ===== */
+/* PASTE YOUR NEW FIREBASE CONFIG HERE */
+firebase.initializeApp({apiKey:"AIzaSyCNZAyQHOL3-2JaLRUw3MDnWw015m8UflU",authDomain:"omega-coin-272b9.firebaseapp.com",projectId:"omega-coin-272b9",
+  storageBucket:"omega-coin-272b9.firebasestorage.app",messagingSenderId:"850636304935",appId:"1:850636304935:web:2d939b98dd8c9a63bd5402"});
+const auth=firebase.auth(), db=firebase.firestore();
+
+/* ===== STATE ===== */
+const DEFAULT_RATE=100;
+const CLOUDINARY={cloud:"kh5apnri",preset:"omega_receipts"}; /* receipt photos */
+let SETAT=0,ISSUED=null,RATE=DEFAULT_RATE, currentUser=null, userData=null, rateHistory=[], range=0;
+let unsubUser=null, unsubRate=null, unsubHist=null;
+
+/* ===== HELPERS ===== */
+const $=id=>document.getElementById(id), fmt=n=>Number(n).toLocaleString();
+const showLoading=t=>{$("loadingText").textContent=t||"Loading...";$("loading").style.display="flex"};
+const hideLoading=()=>{$("loading").style.display="none"};
+const closeModal=id=>{$(id).style.display="none"};
+function setStatus(m,c){const e=$("loginStatus");e.textContent=m||"";e.style.color=c||"var(--down)"}
+function normalizePhone(p){let v=String(p||"").trim().replace(/[^\d+]/g,"");if(v.startsWith("00"))v="+"+v.substring(2);return v}
+const phoneToEmail=p=>normalizePhone(p).replace(/\D/g,"")+"@omega-coin.app"; /* phone number is the login; Firebase needs an email-shaped id */
+const generateUserId=()=>"OC"+Math.floor(100000000+Math.random()*900000000);
+const esc=v=>String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+function friendlyError(e){
+  const m={"auth/email-already-in-use":"This phone number already has an account.","auth/invalid-credential":"Incorrect phone number or password.",
+   "auth/wrong-password":"Incorrect password.","auth/user-not-found":"Account not found.","auth/weak-password":"Password must be at least 6 characters.",
+   "auth/invalid-email":"Invalid phone number.","auth/network-request-failed":"Network connection failed.","permission-denied":"Permission denied."};
+  return (e&&m[e.code])||(e&&e.message)||"Something went wrong."}
+
+/* ===== AUTH ===== */
+function readForm(){
+  const phone=normalizePhone($("phone").value), password=$("password").value.trim();
+  if(!phone||!password){setStatus("Enter your phone number and password.");return null}
+  if(!$("terms").checked){setStatus("Accept the terms to continue.");return null}
+  return{phone,password}}
+async function signUp(){
+  const f=readForm();if(!f)return;
+  if(f.password.length<6){setStatus("Password must be at least 6 characters.");return}
+  try{showLoading("Creating your account...");await auth.createUserWithEmailAndPassword(phoneToEmail(f.phone),f.password)}
+  catch(e){hideLoading();setStatus(friendlyError(e))}}
+async function signIn(){
+  const f=readForm();if(!f)return;
+  try{showLoading("Logging in...");await auth.signInWithEmailAndPassword(phoneToEmail(f.phone),f.password)}
+  catch(e){hideLoading();setStatus(friendlyError(e))}}
+async function logout(){try{await auth.signOut()}catch(e){alert(friendlyError(e))}}
+async function ensureUserDocument(user){
+  const ref=db.collection("users").doc(user.uid);
+  if((await ref.get()).exists)return;
+  const digits=(user.email||"").split("@")[0];
+  await ref.set({uid:generateUserId(),email:user.email||"",phone:digits?"+"+digits:"",balance:0,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()})}
+
+/* ===== LIVE DATA ===== */
+async function loadUser(user){
+  await ensureUserDocument(user);
+  if(unsubUser)unsubUser();
+  unsubUser=db.collection("users").doc(user.uid).onSnapshot(
+    s=>{if(s.exists){userData=s.data();renderUser()}},e=>console.error("User listener:",e))}
+function renderUser(){
+  if(!userData)return;
+  $("balanceDisplay").textContent=fmt(userData.balance||0);
+  $("topUser").textContent=userData.uid||"Account";
+  $("accountUserId").textContent=userData.uid||"---";
+  $("accountPhone").textContent=userData.phone||"---";
+  $("worthDisplay").textContent="≈ ₦"+fmt(Math.round((userData.balance||0)*RATE))+" at the current rate"}
+function listenToRate(){
+  if(unsubRate)unsubRate();
+  unsubRate=db.collection("settings").doc("omxRate").onSnapshot(
+    s=>{const r=s.exists?Number(s.data().rate):NaN,i=s.exists?Number(s.data().totalIssued):NaN;RATE=(Number.isFinite(r)&&r>0)?r:DEFAULT_RATE;if(prevRate!=null&&RATE!==prevRate)announce(prevRate,RATE);prevRate=RATE;ISSUED=Number.isFinite(i)?i:null;SETAT=s.exists&&s.data().updatedAt&&s.data().updatedAt.toMillis?s.data().updatedAt.toMillis():0;renderUser();renderSupply();renderPrices();drawChart()},
+    ()=>{RATE=DEFAULT_RATE;drawChart()})}
+/* Real history: docs in "rateHistory" => { rate:number, createdAt:timestamp } */
+function listenToHistory(){
+  if(unsubHist)unsubHist();
+  unsubHist=db.collection("rateHistory").orderBy("createdAt","desc").limit(300).onSnapshot(
+    s=>{rateHistory=s.docs.map(d=>({vol:Math.abs(Number(d.data().issued)||0),circ:d.data().circulation==null?null:Number(d.data().circulation),rate:Number(d.data().rate),t:d.data().createdAt&&d.data().createdAt.toMillis?d.data().createdAt.toMillis():0}))
+        .filter(p=>p.rate>0&&p.t).reverse();drawChart()},
+    ()=>{rateHistory=[];drawChart()})}
+
+/* ===== CHART (step chart: the rate only changes when coins are issued) ===== */
+let drawn=false,mode="rate";
+const rangeLabel=()=>({0:"All time",0.0416667:"Past hour",1:"Past day",7:"Past 7 days",30:"Past 30 days"})[range];
+function renderSupply(){
+  const el=$("supply");if(ISSUED==null){el.innerHTML="";return}
+  const next=(Math.floor(ISSUED/100)+1)*100;
+  el.innerHTML='<div style="display:flex;justify-content:space-between;margin-top:12px;font-size:13px"><span class="muted">Coins in circulation <b style="color:var(--text)">'+fmt(ISSUED)+
+   '</b></span><span class="muted">Next +₦100 at <b style="color:var(--text)">'+fmt(next)+'</b></span></div><div class="bar"><i style="width:'+(ISSUED%100)+'%"></i></div>'}
+let noHist=false;
+function series(){
+  const now=Date.now(),coins=mode==="coins",live=coins?ISSUED:RATE;
+  if(live==null)return null;
+  const src=coins?rateHistory.filter(p=>p.circ!=null).map(p=>({...p,rate:p.circ})):rateHistory;
+  noHist=!src.length;
+  const h=noHist?[{rate:live,t:SETAT||now-864e5}]:src;
+  const from=range?now-range*864e5:h[0].t;
+  const pts=h.filter(p=>p.t>=from).map(p=>({...p})),prev=h.filter(p=>p.t<from).pop();
+  if(prev)pts.unshift({rate:prev.rate,t:from,vol:0});
+  pts.push({rate:live,t:now,vol:0,live:1});
+  return pts.length>=2?pts:null}
+function setHero(pts,i,t){
+  const price=pts?pts[i].rate:RATE;
+  $("heroPrice").innerHTML=(mode==="coins"&&pts)?'<span class="eq">Coins in circulation</span> '+fmt(price):'<span class="eq">1 T-WAVE COIN =</span> ₦'+fmt(price);
+  const ch=$("heroChange"),dt=$("heroDate");
+  if(!pts){ch.textContent="--";ch.className="muted";dt.textContent="";return}
+  const pct=(price-pts[0].rate)/pts[0].rate*100;
+  ch.textContent=pct===0?"0.00%":(pct>0?"▲ +":"▼ ")+pct.toFixed(2)+"%";ch.className=pct===0?"muted":pct>0?"up":"down";
+  dt.textContent=noHist&&!t?"Current rate only so far":t?new Date(t).toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):rangeLabel()}
+function drawChart(){
+  renderEvents();if(mode==="candle")return drawCandles();
+  const wrap=$("chartArea"),pts=series(),coins=mode==="coins",U=coins?"":"₦";
+  $("cap").textContent=coins?"Coins in circulation over time. The rate moves ₦100 for every 100 coins.":"Each change gets its own space, even when made a minute apart.";
+  if(!pts){wrap.innerHTML='<div class="empty">The chart starts when the first rate is recorded.</div>';$("stats").innerHTML="";setHero(null);return}
+  const n=pts.length,W=wrap.clientWidth||340,H=290,pr=62,pt=16,vh=46,pb=22,base=H-pb-vh-8,R=W-pr;
+  pts.forEach((p,i)=>{p.rt=p.t;p.t=i}); /* every record gets its own equal space, however close in time */
+  const t0=0,t1=n-1,vals=pts.map(p=>p.rate),slot=Math.min(R/Math.max(n-1,13),36);
+  const day=t=>new Date(t).toDateString(),lab=t=>timeFmt(t);
+  let mn=Math.min(...vals),mx=Math.max(...vals);const pad=((mx-mn)||mx*.1)*.2;mn=Math.max(0,mn-pad);mx+=pad;
+  const X=t=>R-(t1-t)*slot,Y=v=>pt+(1-(v-mn)/(mx-mn))*(base-pt);
+  const col=coins?"#38bdf8":vals[n-1]>=vals[0]?"#0ecb81":"#f6465d",last=vals[n-1],ly=Y(last);
+  let line="";pts.forEach((p,i)=>{const x=X(p.t).toFixed(1),y=Y(p.rate).toFixed(1);
+    line+=i?"L"+x+" "+Y(pts[i-1].rate).toFixed(1)+"L"+x+" "+y:"M"+x+" "+y});
+  let g="";
+  for(let k=0;k<5;k++){const v=mx-(mx-mn)*k/4,y=Y(v);
+    g+='<line x1="0" x2="'+R+'" y1="'+y.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="#123a58"/>';
+    if(Math.abs(y-ly)>14)g+='<text x="'+(R+8)+'" y="'+(y+4).toFixed(1)+'" fill="#8fb3c9" font-size="11">'+fmt(Math.round(v))+'</text>'}
+  const tf=range<=1?{hour:"2-digit",minute:"2-digit"}:{month:"short",day:"numeric"};
+  let mk="",lx0=-99,lv=0;
+  if(!coins)pts.forEach((p,k)=>{if(!k||p.live||p.rate===pts[k-1].rate)return;
+    const x=X(p.t),y=Y(p.rate),up=p.rate>pts[k-1].rate,c2=up?"#0ecb81":"#f6465d";
+    mk+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="4" fill="'+c2+'" stroke="#0a2a44" stroke-width="2"/>';
+    lv=(x-lx0<70)?(lv+1)%3:0;lx0=x;if(n>26&&k<n-12)return;
+    mk+='<text x="'+Math.max(36,Math.min(R-36,x)).toFixed(1)+'" y="'+Math.max(12,y-9-lv*13).toFixed(1)+'" font-size="10" font-weight="700" text-anchor="middle" fill="'+c2+'">'+(up?"▲ ":"▼ ")+timeFmt(p.rt)+'</text>'});
+  [...new Set(n<=4?[...Array(n).keys()]:[0,Math.round((n-1)/3),Math.round(2*(n-1)/3),n-1])].forEach(i=>{const x=Math.max(30,Math.min(R-30,X(i)));
+    g+='<text x="'+x.toFixed(1)+'" y="'+(H-6)+'" fill="#8fb3c9" font-size="11" text-anchor="middle">'+lab(pts[i].rt)+'</text>'});
+  const vmax=coins?0:Math.max(0,...pts.map(p=>p.vol||0)),bw=Math.max(4,Math.min(12,slot*.5));
+  let vb="";if(vmax)pts.forEach(p=>{if(!p.vol)return;const h=Math.max(2,p.vol/vmax*vh);
+    vb+='<rect x="'+(X(p.t)-bw/2).toFixed(1)+'" y="'+(H-pb-h).toFixed(1)+'" width="'+bw+'" height="'+h.toFixed(1)+'" rx="1.5" fill="'+col+'" opacity=".4"/>'});
+  const tag=(y,v)=>'<g class="tg" transform="translate('+(R+2)+','+(y-9).toFixed(1)+')"><rect width="'+(pr-4)+'" height="18" rx="4" fill="'+col+'"/>'+
+    '<text x="6" y="13" font-size="11" font-weight="700" fill="#04162a">'+fmt(Math.round(v))+'</text></g>';
+  wrap.innerHTML='<svg viewBox="0 0 '+W+' '+H+'"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">'+
+    '<stop offset="0" stop-color="'+col+'" stop-opacity=".32"/><stop offset="1" stop-color="'+col+'" stop-opacity="0"/></linearGradient></defs>'+g+vb+
+    '<path d="'+line+' L'+X(t1)+' '+base+' L'+X(t0)+' '+base+' Z" fill="url(#g)"/>'+
+    '<path pathLength="1" class="'+(drawn?"":"draw")+'" d="'+line+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round"/>'+
+    '<line id="pl" x1="0" x2="'+R+'" y1="'+ly+'" y2="'+ly+'" stroke="'+col+'" stroke-dasharray="2 4" opacity=".7"/>'+
+    '<g id="ptag">'+tag(ly,last)+'</g>'+
+    '<g id="xh" style="display:none"><line id="xv" y1="'+pt+'" y2="'+(H-pb)+'" stroke="#8fb3c9" stroke-dasharray="3 3"/>'+
+    '<line id="xhz" x1="0" x2="'+R+'" stroke="#8fb3c9" stroke-dasharray="3 3"/>'+
+    '<circle id="xc" r="5" fill="'+col+'" stroke="#0a2a44" stroke-width="2"/>'+
+    '<g id="tt"><rect width="124" height="42" rx="8" fill="#0f3a5c" stroke="#1b4a6b"/>'+
+    '<text id="t1" x="10" y="18" font-size="13" font-weight="700" fill="#e8f6ff"/><text id="t2" x="10" y="34" font-size="11" fill="#8fb3c9"/></g></g>'+
+    mk+'<circle class="pulse" cx="'+X(t1)+'" cy="'+ly+'" r="4" fill="'+col+'"/>'+
+    '<circle cx="'+X(t1)+'" cy="'+ly+'" r="4" fill="'+col+'" stroke="#0a2a44" stroke-width="2"/></svg>';
+  drawn=true;
+  const svg=wrap.firstChild,xh=$("xh"),ptag=$("ptag"),tt=$("tt");
+  const move=e=>{const px=e.clientX-svg.getBoundingClientRect().left;
+    const i=Math.max(0,Math.min(n-1,Math.round(t1-(R-px)/slot)));
+    const x=X(i),y=Y(pts[i].rate);xh.style.display="";
+    $("xv").setAttribute("x1",x);$("xv").setAttribute("x2",x);$("xhz").setAttribute("y1",y);$("xhz").setAttribute("y2",y);
+    $("xc").setAttribute("cx",x);$("xc").setAttribute("cy",y);ptag.innerHTML=tag(y,pts[i].rate);
+    $("t1").textContent=U+fmt(pts[i].rate);$("t2").textContent=new Date(pts[i].rt).toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
+    tt.setAttribute("transform","translate("+(x+14>R-124?x-138:x+14)+","+(pt+4)+")");setHero(pts,i,pts[i].rt)};
+  const leave=()=>{xh.style.display="none";ptag.innerHTML=tag(ly,last);setHero(pts,n-1)};
+  svg.addEventListener("pointermove",move);svg.addEventListener("pointerdown",move);
+  svg.addEventListener("pointerleave",leave);svg.addEventListener("pointerup",leave);
+  $("stats").innerHTML='<div><div class="label">High</div><b>'+U+fmt(Math.max(...vals))+'</b></div>'+
+    '<div><div class="label">Low</div><b>'+U+fmt(Math.min(...vals))+'</b></div>'+
+    '<div><div class="label">Start</div><b>'+U+fmt(vals[0])+'</b></div>';
+  setHero(pts,n-1)}
+let prevRate=null,bannerT=null;
+const timeFmt=t=>new Date(t).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+function announce(from,to){
+  const b=$("riseBanner"),up=to>from;b.className="rb "+(up?"up":"down");b.style.display="block";
+  b.textContent=(up?"▲ T-WAVE rose from ₦":"▼ T-WAVE fell from ₦")+fmt(from)+" to ₦"+fmt(to)+" at "+timeFmt(Date.now());
+  clearTimeout(bannerT);bannerT=setTimeout(()=>{b.style.display="none"},10000)}
+function renderEvents(){
+  const el=$("events");let prev=100;const ev=[];
+  rateHistory.forEach(p=>{if(p.rate!==prev)ev.push({t:p.t,a:prev,b:p.rate});prev=p.rate});
+  if(!ev.length){el.innerHTML="";return}
+  el.innerHTML='<div class="label" style="margin:14px 0 2px">Recent rate changes</div>'+ev.slice(-6).reverse().map(e=>{const up=e.b>e.a;
+    const rnd='animation-duration:'+(1.8+Math.random()*1.6).toFixed(2)+'s;animation-delay:-'+(Math.random()*3).toFixed(2)+'s';
+    const chev=up?'<path d="M6 11l6-6 6 6M6 19l6-6 6 6"/>':'<path d="M6 5l6 6 6-6M6 13l6 6 6-6"/>';
+    return'<div class="ev"><span class="'+(up?"up":"down")+'"><i class="arr '+(up?"":"dn")+'" style="'+rnd+'">'+(up?"▲":"▼")+'</i>₦'+fmt(e.a)+" → ₦"+fmt(e.b)+'</span><span class="muted">'+timeFmt(e.t)+
+      '<svg class="gold" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ffc933" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">'+chev+'</svg></span></div>'}).join("")}
+function drawCandles(){
+  const wrap=$("chartArea"),now=Date.now(),from=range?now-range*864e5:0;
+  let prev=100;const cs=[];
+  rateHistory.forEach(p=>{const o=prev;prev=p.rate;if(p.t>=from)cs.push({t:p.t,o,c:p.rate,h:Math.max(o,p.rate),l:Math.min(o,p.rate),v:p.vol||0})});
+  const vis=cs.slice(-40),N=vis.length;
+  if(!N){wrap.innerHTML='<div class="empty">No rate changes in this period.</div>';$("stats").innerHTML="";$("cap").textContent="";setHero(null);return}
+  $("cap").textContent="Each candle is one admin add or remove. Green = rate rose, red = fell, grey = coins moved but the rate stayed the same.";
+  const W=wrap.clientWidth||340,H=290,pr=62,pt=16,vh=46,pb=22,base=H-pb-vh-8,R=W-pr;
+  let mn=Math.min(...vis.map(c=>c.l),RATE),mx=Math.max(...vis.map(c=>c.h),RATE);
+  const pad=((mx-mn)||mx*.1)*.2;mn=Math.max(0,mn-pad);mx+=pad;
+  const Y=v=>pt+(1-(v-mn)/(mx-mn))*(base-pt),slot=Math.min(R/Math.max(N,14),28),x0=R-N*slot,CX=i=>x0+(i+.5)*slot,bw=Math.max(5,Math.min(14,slot*.5));
+  const colOf=c=>c.c>c.o?"#0ecb81":c.c<c.o?"#f6465d":"#8fb3c9",ly=Y(RATE),lc=colOf(vis[N-1]);
+  const day=t=>new Date(t).toDateString(),lab=t=>timeFmt(t);
+  let g="";
+  for(let k=0;k<5;k++){const v=mx-(mx-mn)*k/4,y=Y(v);g+='<line x1="0" x2="'+R+'" y1="'+y.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="#123a58"/>';
+    if(Math.abs(y-ly)>14)g+='<text x="'+(R+8)+'" y="'+(y+4).toFixed(1)+'" fill="#8fb3c9" font-size="11">'+fmt(Math.round(v))+'</text>'}
+  const picks=[...new Set(N<=4?[...Array(N).keys()]:[0,Math.round((N-1)/3),Math.round(2*(N-1)/3),N-1])];
+  picks.forEach(i=>{const x=Math.max(30,Math.min(R-30,CX(i)));g+='<text x="'+x.toFixed(1)+'" y="'+(H-6)+'" fill="#8fb3c9" font-size="11" text-anchor="middle">'+lab(vis[i].t)+'</text>'});
+  const vmax=Math.max(0,...vis.map(c=>c.v));let body="";
+  vis.forEach((c,i)=>{const x=CX(i),col=colOf(c),yt=Y(Math.max(c.o,c.c)),yb=Y(Math.min(c.o,c.c));
+    body+='<rect x="'+(x-bw/2).toFixed(1)+'" y="'+yt.toFixed(1)+'" width="'+bw+'" height="'+Math.max(3,yb-yt).toFixed(1)+'" fill="'+col+'" rx="1.5"/>';
+    if(vmax&&c.v){const h=Math.max(2,c.v/vmax*vh);body+='<rect x="'+(x-bw/2).toFixed(1)+'" y="'+(H-pb-h).toFixed(1)+'" width="'+bw+'" height="'+h.toFixed(1)+'" fill="'+col+'" opacity=".4"/>'}});
+  const tag='<g transform="translate('+(R+2)+','+(ly-9).toFixed(1)+')"><rect width="'+(pr-4)+'" height="18" rx="4" fill="'+lc+'"/><text x="6" y="13" font-size="11" font-weight="700" fill="#04162a">'+fmt(Math.round(RATE))+'</text></g>';
+  wrap.innerHTML='<svg viewBox="0 0 '+W+' '+H+'">'+g+body+'<line x1="0" x2="'+R+'" y1="'+ly+'" y2="'+ly+'" stroke="'+lc+'" stroke-dasharray="2 4" opacity=".7"/>'+tag+
+    '<g id="xh" style="display:none"><line id="xv" y1="'+pt+'" y2="'+(H-pb)+'" stroke="#8fb3c9" stroke-dasharray="3 3"/><g id="tt"><rect width="176" height="58" rx="8" fill="#0f3a5c" stroke="#1b4a6b"/>'+
+    '<text id="t1" x="10" y="18" font-size="12" font-weight="700" fill="#e8f6ff"/><text id="t2" x="10" y="34" font-size="11" fill="#e8f6ff"/><text id="t3" x="10" y="50" font-size="11" fill="#8fb3c9"/></g></g></svg>';
+  const dt=t=>new Date(t).toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+  const hero=i=>{const c=vis[i],pct=vis[0].o?(c.c-vis[0].o)/vis[0].o*100:0,ch=$("heroChange");
+    $("heroPrice").innerHTML='<span class="eq">1 T-WAVE COIN =</span> ₦'+fmt(c.c);
+    ch.textContent=pct===0?"0.00%":(pct>0?"▲ +":"▼ ")+pct.toFixed(2)+"%";ch.className=pct===0?"muted":pct>0?"up":"down";
+    $("heroDate").textContent=i===N-1?rangeLabel():dt(c.t)};
+  const svg=wrap.firstChild,xh=$("xh");
+  const move=e=>{const px=e.clientX-svg.getBoundingClientRect().left,i=Math.max(0,Math.min(N-1,Math.floor((px-x0)/slot))),c=vis[i],x=CX(i),d=c.c-c.o;
+    xh.style.display="";$("xv").setAttribute("x1",x);$("xv").setAttribute("x2",x);
+    $("t1").textContent="Open ₦"+fmt(c.o)+"   Close ₦"+fmt(c.c);
+    $("t2").textContent=(d===0?"No rate change":"Change "+(d>0?"+":"-")+"₦"+fmt(Math.abs(d)))+(c.v?"  ·  "+fmt(c.v)+" coins":"");
+    $("t3").textContent=dt(c.t);$("tt").setAttribute("transform","translate("+(x+12>R-176?x-188:x+12)+","+(pt+4)+")");hero(i)};
+  const leave=()=>{xh.style.display="none";hero(N-1)};
+  svg.addEventListener("pointermove",move);svg.addEventListener("pointerdown",move);svg.addEventListener("pointerleave",leave);svg.addEventListener("pointerup",leave);
+  $("stats").innerHTML='<div><div class="label">High</div><b>₦'+fmt(Math.max(...vis.map(c=>c.h)))+'</b></div><div><div class="label">Low</div><b>₦'+fmt(Math.min(...vis.map(c=>c.l)))+'</b></div><div><div class="label">Start</div><b>₦'+fmt(vis[0].o)+'</b></div>';
+  hero(N-1)}
+setInterval(()=>{if(currentUser)drawChart()},30000); /* chart keeps moving forward in time */
+$("tabs").addEventListener("click",e=>{const b=e.target.closest(".tab");if(!b)return;
+  range=+b.dataset.r;document.querySelectorAll("#tabs .tab").forEach(t=>t.classList.toggle("on",t===b));drawChart()});
+$("modes").addEventListener("click",e=>{const b=e.target.closest(".tab");if(!b)return;
+  mode=b.dataset.m;drawn=false;document.querySelectorAll("#modes .tab").forEach(t=>t.classList.toggle("on",t===b));drawChart()});
+window.addEventListener("resize",()=>{if(currentUser)drawChart()});
+
+/* ===== SESSION ===== */
+auth.onAuthStateChanged(async user=>{
+  if(user){
+    try{currentUser=user;showLoading("Loading your account...");await loadUser(user);
+      listenToRate();listenToHistory();
+      $("loginPage").style.display="none";$("homePage").style.display="block";drawChart();hideLoading()}
+    catch(e){console.error(e);hideLoading();setStatus(friendlyError(e))}
+  }else{
+    currentUser=null;userData=null;[unsubUser,unsubRate,unsubHist].forEach(u=>u&&u());
+    unsubUser=unsubRate=unsubHist=null;if(unsubChat){unsubChat();unsubChat=null}
+    $("homePage").style.display="none";$("loginPage").style.display="flex";hideLoading()}});
+
+/* ===== BUY ===== */
+const QTYS=[1,2,3,4,5,10,20,50,100,200,300,500,1000,2000];
+function renderPrices(){
+  $("buyRate").textContent="Current rate: 1 T-WAVE = ₦"+fmt(RATE)+". Prices follow the rate and update automatically.";
+  $("priceList").innerHTML=QTYS.map(q=>'<button class="pr" onclick="pickQty('+q+')"><span>'+fmt(q)+' T-WAVE</span><b>₦'+fmt(q*RATE)+'</b></button>').join("");
+  updateBuyTotal()}
+function pickQty(q){$("buyAmount").value=q;updateBuyTotal()}
+function updateBuyTotal(){paidTaps=0;$("paidWarn").style.display="none";$("paidBtn").textContent="I have paid";const a=+$("buyAmount").value;$("buyTotal").textContent=a>0?fmt(a)+" T-WAVE = ₦"+fmt(a*RATE):""}
+let deadline=0,cdTimer=null,paidTaps=0;
+function tickCountdown(){
+  const left=Math.max(0,deadline-Date.now()),m=Math.floor(left/6e4),sec=Math.floor(left%6e4/1000);
+  $("cd").textContent=left?String(m).padStart(2,"0")+":"+String(sec).padStart(2,"0"):"Expired";
+  if(!left)clearInterval(cdTimer)}
+function startCountdown(){ /* 10 minutes to pay; keeps running if the window is closed and reopened */
+  if(Date.now()>=deadline)deadline=Date.now()+6e5;
+  clearInterval(cdTimer);tickCountdown();cdTimer=setInterval(tickCountdown,1000)}
+async function buyCoin(){
+  if(!currentUser||!userData){alert("Please log in first.");return}
+  $("buyModal").style.display="block";renderPrices();startCountdown();
+  paidTaps=0;$("paidWarn").style.display="none";$("paidBtn").textContent="I have paid";
+  const set=(a,b,c)=>{$("payName").textContent=a;$("payBank").textContent=b;$("payNumber").textContent=c};
+  set("Loading...","Loading...","Loading...");
+  try{const s=await db.collection("settings").doc("payment").get();
+    if(!s.exists){set("Not configured","Not configured","Not configured");return}
+    const d=s.data();set(d.accountName||"Not provided",d.bankName||"Not provided",d.accountNumber||"Not provided")}
+  catch(e){console.error(e);set("Unable to load","Unable to load","Unable to load")}}
+function paidClick(){
+  const a=+$("buyAmount").value,w=$("paidWarn"),btn=$("paidBtn");
+  if(!(a>0)){paidTaps=0;w.style.display="block";btn.textContent="I have paid";
+    w.textContent="First choose how many T-WAVE you are buying: tap an amount in the list or type it in the box.";$("buyAmount").focus();return}
+  if(Date.now()>=deadline){alert("Time is up. Tap Buy coin to start again.");deadline=0;closeModal("buyModal");return}
+  if(paidTaps===0){paidTaps=1;w.style.display="block";
+    w.textContent="You are buying "+fmt(a)+" T-WAVE for ₦"+fmt(a*RATE)+". Make your payment of exactly ₦"+fmt(a*RATE)+" first, then tap the button again.";
+    btn.textContent="Yes, I have paid ₦"+fmt(a*RATE);return}
+  paidTaps=0;closeModal("buyModal");sendPaidRequest(a)}
+async function sendPaidRequest(a){
+  openChat();
+  try{await postMessages([
+    {from:"user",text:"I have paid ₦"+fmt(a*RATE)+" for "+fmt(a)+" T-WAVE (rate ₦"+fmt(RATE)+"). User ID: "+userData.uid+"."},
+    {from:"system",text:"📷 Tap the camera icon below and send a photo of your payment receipt.\n⚠️ Send receipt for verification — your purchase can't be confirmed without it."}])}
+  catch(e){alert(friendlyError(e))}}
+
+/* ===== WITHDRAW / SUPPORT ===== */
+function withdrawCoin(){
+  if(!userData){alert("Please log in first.");return}
+  if(!(Number(userData.balance)>0)){$("emptyModal").style.display="block";return}
+  openChat("I want to withdraw. User ID: "+userData.uid+". My balance: "+fmt(userData.balance)+" T-WAVE.")}
+function openGuide(){$("guideModal").style.display="block"}
+
+/* ===== IN-APP CHAT: chats/{authUid}/messages  (from: user | system | admin) ===== */
+let unsubChat=null;
+const chatRef=()=>db.collection("chats").doc(currentUser.uid);
+function renderChat(msgs){
+  const l=$("chatList");
+  l.innerHTML=msgs.length?msgs.map(m=>{
+    const cls=m.from==="user"?"me":m.from==="system"?"sys":"mgr",who=(m.from==="admin"||m.from==="system")?"Account Manager · ":"";
+    const t=new Date(m.cAt||0).toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
+    return'<div class="msg '+cls+'">'+(m.image?'<img src="'+esc(m.image)+'" alt="Receipt" onclick="window.open(this.src)">':"")+esc(m.text)+'<small>'+who+esc(t)+'</small></div>'}).join(""):
+    '<div class="empty" style="padding:40px 10px">Say hello. The Account Manager replies here in the app.</div>';
+  l.scrollTop=l.scrollHeight}
+function openChat(prefill){
+  if(!currentUser||!userData){alert("Please log in first.");return}
+  ["buyModal","guideModal","emptyModal"].forEach(closeModal);
+  $("chatModal").style.display="block";$("chatInput").value=prefill||"";
+  if(unsubChat)unsubChat();
+  unsubChat=chatRef().collection("messages").orderBy("cAt","asc").limit(150).onSnapshot(
+    s=>renderChat(s.docs.map(d=>d.data()).filter(m=>(m.cAt||0)>Date.now()-1728e5)),
+    ()=>{$("chatList").innerHTML='<div class="empty">Could not load messages. Try again.</div>'})}
+async function postMessages(list){
+  const base=Date.now(),b=db.batch(),last=list.filter(m=>m.from==="user").pop();
+  b.set(chatRef(),{userId:userData.uid,phone:userData.phone||"",lastText:last?(last.image?"📷 Receipt":last.text):"",
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp(),unreadForAdmin:true},{merge:true});
+  list.forEach((m,i)=>b.set(chatRef().collection("messages").doc(),{...m,uid:userData.uid,cAt:base+i,expireAt:new Date(base+1728e5)}));
+  await b.commit()}
+async function sendChat(){
+  const inp=$("chatInput"),text=inp.value.trim().slice(0,500);if(!text)return;
+  inp.value="";
+  try{await postMessages([{from:"user",text}])}catch(e){inp.value=text;alert(friendlyError(e))}}
+async function uploadImage(file){ /* Cloudinary unsigned upload */
+  const fd=new FormData();fd.append("file",file);fd.append("upload_preset",CLOUDINARY.preset);
+  const r=await fetch("https://api.cloudinary.com/v1_1/"+CLOUDINARY.cloud+"/image/upload",{method:"POST",body:fd});
+  if(!r.ok)throw new Error("Upload failed");return (await r.json()).secure_url}
+async function sendImage(inp){
+  const f=inp.files[0];inp.value="";if(!f)return;
+  if(f.size>10*1024*1024){alert("Photo is too large. Maximum 10 MB.");return}
+  const hint=$("chatHint");hint.textContent="Uploading receipt...";
+  try{await postMessages([{from:"user",text:"Payment receipt",image:await uploadImage(f)}]);hint.textContent="Receipt sent. Wait for the Account Manager to confirm."}
+  catch(e){console.error(e);hint.textContent="Upload failed. Tap the camera and try again."}}
+function closeChat(){if(unsubChat){unsubChat();unsubChat=null}closeModal("chatModal")}
+$("chatInput").addEventListener("keydown",e=>{if(e.key==="Enter")sendChat()});
+
+/* ===== HISTORY ===== */
+async function showHistory(){
+  if(!currentUser||!userData){alert("Please log in first.");return}
+  $("historyModal").style.display="block";
+  const list=$("historyList");list.textContent="Loading transactions...";
+  try{
+    const s=await db.collection("transactions").where("uid","==",userData.uid).limit(50).get();
+    const txs=s.docs.map(d=>d.data()),ms=t=>t.createdAt&&t.createdAt.toMillis?t.createdAt.toMillis():0;
+    txs.sort((a,b)=>ms(b)-ms(a));
+    if(!txs.length){list.innerHTML='<div class="empty" style="padding:30px 0">No transactions yet. Buy coin to get started.</div>';return}
+    list.innerHTML=txs.map(t=>{
+      const type=String(t.type||"TRANSACTION"),add=type.includes("ADD")||type.includes("BUY"),c=add?"up":"down";
+      const date=t.createdAt&&t.createdAt.toDate?t.createdAt.toDate().toLocaleString():"Date unavailable";
+      return'<div class="hist"><div class="histTop"><span class="'+c+'">'+esc(type)+'</span><span class="'+c+'">'+(add?"+":"-")+fmt(t.amount||0)+
+        '</span></div><div class="histMeta">'+esc(date)+'</div></div>'}).join("")}
+  catch(e){console.error(e);list.innerHTML='<div class="empty" style="padding:30px 0">Could not load history. Try again.</div>'}}
+
+["buyModal","historyModal","guideModal","emptyModal"].forEach(id=>$(id).addEventListener("click",e=>{if(e.target===$(id))closeModal(id)}));
+$("chatModal").addEventListener("click",e=>{if(e.target===$("chatModal"))closeChat()});
+$("password").addEventListener("keydown",e=>{if(e.key==="Enter")signIn()});
+</script>
+</body>
+</html>
+￼Ente
