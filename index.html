@@ -311,8 +311,10 @@ async function ensureUserDocument(user){
   const ref=db.collection("users").doc(user.uid);
   if((await ref.get()).exists)return;
   const digits=(user.email||"").split("@")[0];
-  await ref.set({uid:generateUserId(),email:user.email||"",phone:digits?"+"+digits:"",balance:0,
-    createdAt:firebase.firestore.FieldValue.serverTimestamp()})}
+  const id=generateUserId(),phone=digits?"+"+digits:"",ts=firebase.firestore.FieldValue.serverTimestamp();
+  await ref.set({uid:id,email:user.email||"",phone:phone,balance:0,createdAt:ts});
+  /* new account shows up in the admin chat inbox like an unread message with no text */
+  try{await db.collection("chats").doc(user.uid).set({userId:id,phone:phone,lastText:"",updatedAt:ts,unreadForAdmin:true},{merge:true})}catch(e){console.error(e)}}
 
 /* ===== LIVE DATA ===== */
 async function loadUser(user){
@@ -618,4 +620,3 @@ $("password").addEventListener("keydown",e=>{if(e.key==="Enter")signIn()});
 </script>
 </body>
 </html>
-￼Ente
